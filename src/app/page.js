@@ -1,100 +1,118 @@
-import Image from "next/image";
+"use client"
+
+import Deck from "./components/Deck";
+import CardCounter from "./components/CardCounter";
+import ProbabilityCalculator from "./components/ProbabilityCalculator";
+import Recommendation from "./components/Recommendation";
+import Controls from "./components/Controls";
+import { useState } from "react";
+import ProbabilityOptions from "./components/ProbabilityOptions";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [deck, setDeck] = useState({
+    1: 4, 2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 4, 9: 4, 10: 16,
+  });
+  const [count, setCount] = useState(0);
+  const [drawnCard, setDrawnCard] = useState(null);
+  const [probabilityResult, setProbabilityResult] = useState(null); // Stocker le résultat des probabilités
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Fonction pour calculer les probabilités
+  const calculateProbability = ({ number, comparison }) => {
+    // Exemple simple : simulation de la probabilité basée sur les critères
+    let probability = 0;
+
+    if (comparison === ">") {
+      probability = ((13 - number) / 13) * 100; // Probabilité d'avoir un nombre supérieur
+    } else if (comparison === "=") {
+      probability = (1 / 13) * 100; // Probabilité d'avoir exactement ce nombre
+    } else if (comparison === "<") {
+      probability = ((number - 1) / 13) * 100; // Probabilité d'avoir un nombre inférieur
+    }
+
+    // Stocker le résultat
+    setProbabilityResult(probability.toFixed(2));
+  };
+
+
+  const drawCard = (card) => {
+    if (deck[card] > 0) {
+      setDeck((prevDeck) => ({
+        ...prevDeck,
+        [card]: prevDeck[card] - 1,
+      }));
+      setDrawnCard(card);
+      updateCount(card);
+    }
+  };
+
+  const updateCount = (card) => {
+    if (card >= 2 && card <= 6) setCount((prev) => prev + 1);
+    else if (card === 10 || card === 1) setCount((prev) => prev - 1);
+  };
+
+  const resetGame = () => {
+    setDeck({
+      1: 4, 2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 4, 9: 4, 10: 16,
+    });
+    setCount(0);
+    setDrawnCard(null);
+  };
+
+  return (
+    <div className="min-h-screen p-6 bg-gray-100 text-gray-900">
+      <header className="text-center mb-8">
+        <h1 className="text-3xl font-bold">Blackjack Assistant</h1>
+        <p className="text-sm text-gray-600">Optimisez vos choix grâce à la stratégie et les probabilités</p>
+      </header>
+      
+      <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Section Deck */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Deck</h2>
+          <Deck deck={deck} drawCard={drawCard} />
+        </section>
+
+        {/* Section Card Counter */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Compteur de Cartes</h2>
+          <CardCounter count={count} />
+        </section>
+
+        {/* Section Probability Calculator */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Probabilités</h2>
+          <ProbabilityCalculator deck={deck} targetCard={7} />
+          
+          <div className="grid grid-cols-1 gap-8 p-8">
+          {/* Section Critères de Probabilité */}
+          <ProbabilityOptions calculateProbability={calculateProbability} />
+
+          {/* Résultat de la probabilité */}
+          {probabilityResult !== null && (
+            <div className="border p-4 rounded shadow-md bg-green-50">
+              <p className="text-lg font-medium">
+                Résultat : {probabilityResult}% de chance.
+              </p>
+            </div>
+          )}
         </div>
+        </section>
+
+        {/* Section Recommendation */}
+        <section className="bg-white rounded-lg shadow p-6 md:col-span-2">
+          <h2 className="text-xl font-semibold mb-4">Recommandations</h2>
+          <Recommendation playerHand={15} dealerCard={drawnCard || 7} />
+        </section>
+
+        {/* Section Controls */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4">Actions</h2>
+          <Controls resetGame={resetGame} drawCard={() => drawCard(7)} />
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      <footer className="text-center mt-12 text-gray-500 text-sm">
+        Blackjack Assistant © 2024 - Par vos soins
       </footer>
     </div>
   );
