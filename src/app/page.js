@@ -6,7 +6,7 @@ import ProbabilityCalculator from "./components/ProbabilityCalculator";
 import Recommendation from "./components/Recommendation";
 import Controls from "./components/Controls";
 import ProbabilityOptions from "./components/ProbabilityOptions";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Home() {
   const [deck, setDeck] = useState({
@@ -15,6 +15,21 @@ export default function Home() {
   const [count, setCount] = useState(0);
   const [drawnCards, setDrawnCards] = useState([]); // Stocker toutes les cartes tirées
   const [probabilityResult, setProbabilityResult] = useState(null);
+  const [dealerHand, setDealerHand] = useState([]);
+  const [dealerScore, setDealerScore] = useState(0);
+
+  const totalCardsLeft = Object.values(deck).reduce((sum, qty) => sum + qty, 0);
+  const totalValueLeft = Object.entries(deck).reduce(
+    (sum, [card, qty]) => sum + card * qty,
+    0
+  );
+    
+  useEffect(() => {
+    if (dealerHand.length > 0) {
+      alert(checkWinner());
+    }
+  }, [dealerScore, drawnCards]);
+  
 
   const calculateProbability = ({ number, comparison }) => {
     let totalCards = Object.values(deck).reduce((sum, count) => sum + count, 0);
@@ -76,20 +91,68 @@ export default function Home() {
     });
     setCount(0);
     setDrawnCards([]); // Réinitialiser les cartes tirées
+    setDealerHand([]);
+    setDealerScore(0);
     setProbabilityResult(null);
   };
 
   const handleStay = () => {
-    alert("Vous avez choisi de rester. Passez au tour suivant !");
-    // Ici, vous pouvez déclencher des actions comme afficher une recommandation
-    // ou permettre au croupier de jouer si cette mécanique est implémentée
+    let updatedDealerHand = [...dealerHand];
+    let deckCopy = { ...deck };
+  
+    while (calculateScore(updatedDealerHand) < 17) {
+      // Tirage d'une carte aléatoire
+      const cardKeys = Object.keys(deckCopy).filter((key) => deckCopy[key] > 0);
+      if (cardKeys.length === 0) break; // Plus de cartes disponibles
+  
+      const randomIndex = Math.floor(Math.random() * cardKeys.length);
+      const drawnCard = parseInt(cardKeys[randomIndex]);
+  
+      // Mise à jour de la main du croupier
+      updatedDealerHand.push(drawnCard);
+      deckCopy[drawnCard] -= 1;
+    }
+  
+    setDealerHand(updatedDealerHand);
+    setDealerScore(calculateScore(updatedDealerHand));
+    setDeck(deckCopy);
+  
+    alert("Le croupier a terminé son tour !");
   };
 
-  const totalCardsLeft = Object.values(deck).reduce((sum, qty) => sum + qty, 0);
-  const totalValueLeft = Object.entries(deck).reduce(
-    (sum, [card, qty]) => sum + card * qty,
-    0
-  );
+  const calculateScore = (hand) => {
+    let score = 0;
+    let aces = 0;
+  
+    // Additionnez les cartes, comptez les As séparément
+    hand.forEach((card) => {
+      if (card === 1) {
+        aces += 1;
+        score += 11; // Comptez les As comme 11 par défaut
+      } else if (card >= 10) {
+        score += 10; // 10, J, Q, K comptent pour 10
+      } else {
+        score += card; // Autres cartes conservent leur valeur nominale
+      }
+    });
+  
+    // Ajustez les As si le score dépasse 21
+    while (score > 21 && aces > 0) {
+      score -= 10;
+      aces -= 1;
+    }
+  
+    return score;
+  };
+
+  const checkWinner = () => {
+    const playerScore = calculateScore(drawnCards);
+    if (playerScore > 21) return "Le joueur a dépassé 21. Le croupier gagne !";
+    if (dealerScore > 21) return "Le croupier a dépassé 21. Le joueur gagne !";
+    if (dealerScore > playerScore) return "Le croupier gagne !";
+    if (dealerScore < playerScore) return "Le joueur gagne !";
+    return "Égalité !";
+  };
 
   return (
     <div className="min-h-screen p-6 bg-gray-100 text-gray-900">
@@ -130,7 +193,7 @@ export default function Home() {
         </section>
 
         {/* Section Recommendation */}
-        <section className="bg-white rounded-lg shadow p-6 md:col-span-2">
+        <section className="bg-white rounded-lg shadow p-6">
         <Recommendation 
           playerHand={drawnCards.reduce((sum, card) => sum + card, 0)} 
           dealerCard={drawnCards[0] || 7} 
@@ -151,6 +214,18 @@ export default function Home() {
             </div>
           )}
         </section>
+
+        <section className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold mb-4">Main du Croupier</h2>
+        <div className="flex gap-2">
+          {dealerHand.map((card, index) => (
+            <span key={index} className="px-2 py-1 border rounded bg-gray-100">
+              {card}
+            </span>
+          ))}
+        </div>
+        <p className="mt-4">Score du croupier : {dealerScore}</p>
+      </section>
 
         {/* Section Controls */}
         <section className="bg-white rounded-lg shadow p-6">
